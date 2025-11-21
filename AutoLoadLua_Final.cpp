@@ -229,6 +229,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
     switch (dwReason)
     {
     case DLL_PROCESS_ATTACH:
+    {
         g_hModule = hModule;
         DisableThreadLibraryCalls(hModule);
         
@@ -250,10 +251,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
             OutputDebugStringA(msg);
         }
         break;
+    }
         
     case DLL_PROCESS_DETACH:
+    {
         OutputDebugStringA("[AutoLoadLua] DLL 已卸载\n");
         break;
+    }
     }
     
     return TRUE;
