@@ -15,9 +15,6 @@ jobs:
     - name: 检出代码
       uses: actions/checkout@v4
       
-    - name: 设置 Visual Studio 环境
-      uses: microsoft/setup-msbuild@v1.3
-      
     - name: 编译 AutoLoadLua.dll
       shell: cmd
       run: |
@@ -27,49 +24,34 @@ jobs:
         echo 当前目录: %CD%
         echo.
         
-        REM 查找并设置 Visual Studio 编译环境
-        echo 正在查找 Visual Studio...
+        REM 直接使用 GitHub Actions 预装的 Visual Studio 路径
+        set "VS_PATH=C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat"
         
-        REM 尝试使用 GitHub Actions 预装的环境
-        if defined VCPATH (
-          echo 使用 VCPATH 环境变量: %VCPATH%
-          call "%VCPATH%\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
-          echo 找到 VS2022 Enterprise
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
-          echo 找到 VS2022 Professional
-          call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-          echo 找到 VS2022 Community
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
-          echo 找到 VS2019 Enterprise
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
-          echo 找到 VS2019 Professional
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-          echo 找到 VS2019 Community
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else (
+        if not exist "%VS_PATH%" (
           echo [错误] 未找到 Visual Studio
-          echo 查找所有可能的路径...
           dir /b "C:\Program Files\Microsoft Visual Studio\" 2>nul
-          dir /b "C:\Program Files (x86)\Microsoft Visual Studio\" 2>nul
           exit /b 1
         )
         
-        REM 验证编译器
+        echo 找到 Visual Studio: %VS_PATH%
+        call "%VS_PATH%" x64
+        if %ERRORLEVEL% NEQ 0 (
+          echo [错误] 设置编译环境失败
+          exit /b 1
+        )
+        
         where cl >nul 2>&1
         if %ERRORLEVEL% NEQ 0 (
-          echo [错误] 编译器设置失败，cl.exe 不可用
-          echo 当前 PATH: %PATH%
+          echo [错误] 编译器设置失败
           exit /b 1
         )
         
         echo [OK] 编译环境设置成功
-        cl
         echo.
         
         echo 正在编译 AutoLoadLua.dll...
@@ -78,9 +60,9 @@ jobs:
           echo [错误] DLL 编译失败
           exit /b 1
         )
-        echo.
-        echo [成功] AutoLoadLua.dll 编译完成
+        
         if exist AutoLoadLua.dll (
+          echo [成功] AutoLoadLua.dll 编译完成
           dir AutoLoadLua.dll
         ) else (
           echo [错误] AutoLoadLua.dll 文件不存在
@@ -94,31 +76,19 @@ jobs:
         echo 编译 Injector.exe
         echo ========================================
         
-        REM 设置 Visual Studio 编译环境
-        if defined VCPATH (
-          call "%VCPATH%\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
-          call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" x64
-        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-        )
+        set "VS_PATH=C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat"
+        if not exist "%VS_PATH%" set "VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat"
         
-        REM 验证编译器
+        call "%VS_PATH%" x64
         where cl >nul 2>&1
         if %ERRORLEVEL% NEQ 0 (
           echo [错误] 编译器设置失败
           exit /b 1
         )
-        echo [OK] 编译环境设置成功
-        echo.
         
         echo 正在编译 Injector.exe...
         cl /EHsc /O2 /W3 Injector.cpp /link /OUT:Injector.exe kernel32.lib tlhelp32.lib
@@ -126,9 +96,9 @@ jobs:
           echo [错误] Injector 编译失败
           exit /b 1
         )
-        echo.
-        echo [成功] Injector.exe 编译完成
+        
         if exist Injector.exe (
+          echo [成功] Injector.exe 编译完成
           dir Injector.exe
         ) else (
           echo [警告] Injector.exe 文件不存在
@@ -142,9 +112,6 @@ jobs:
     - name: 复制编译产物
       shell: cmd
       run: |
-        echo ========================================
-        echo 复制编译产物
-        echo ========================================
         if exist "AutoLoadLua.dll" (
           copy "AutoLoadLua.dll" "build_artifacts\AutoLoadLua.dll"
           echo [OK] AutoLoadLua.dll 已复制
@@ -156,8 +123,6 @@ jobs:
         if exist "Injector.exe" (
           copy "Injector.exe" "build_artifacts\Injector.exe"
           echo [OK] Injector.exe 已复制
-        ) else (
-          echo [警告] Injector.exe 不存在
         )
         
     - name: 上传构建产物
