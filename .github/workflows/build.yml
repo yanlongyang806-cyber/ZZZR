@@ -15,23 +15,21 @@ jobs:
     - name: 检出代码
       uses: actions/checkout@v4
       
-    - name: 设置 MSBuild 路径
+    - name: 设置 Visual Studio 环境
+      uses: microsoft/setup-msbuild@v1
+      
+    - name: 验证编译环境
       shell: cmd
       run: |
         echo ========================================
-        echo 设置编译环境
+        echo 验证编译环境
         echo ========================================
-        for /f "usebackq tokens=*" %%i in (`where /r "C:\Program Files" vcvars32.bat 2^>nul`) do (
-          echo 找到: %%i
-          call "%%i"
-          goto :found
-        )
-        :found
         where cl
         if %ERRORLEVEL% NEQ 0 (
           echo [错误] 未找到编译器
           exit /b 1
         )
+        cl
         
     - name: 编译 AutoLoadLua.dll
       shell: cmd
@@ -42,6 +40,7 @@ jobs:
         echo 当前目录: %CD%
         echo.
         echo 正在编译...
+        msbuild /version
         cl /LD /EHsc /O2 /W3 AutoLoadLua_Final.cpp /link /OUT:AutoLoadLua.dll kernel32.lib psapi.lib
         if %ERRORLEVEL% NEQ 0 (
           echo [错误] DLL 编译失败
@@ -49,7 +48,12 @@ jobs:
         )
         echo.
         echo [成功] AutoLoadLua.dll 编译完成
-        dir AutoLoadLua.dll
+        if exist AutoLoadLua.dll (
+          dir AutoLoadLua.dll
+        ) else (
+          echo [错误] AutoLoadLua.dll 文件不存在
+          exit /b 1
+        )
         
     - name: 编译 Injector.exe
       shell: cmd
@@ -65,7 +69,11 @@ jobs:
         )
         echo.
         echo [成功] Injector.exe 编译完成
-        dir Injector.exe
+        if exist Injector.exe (
+          dir Injector.exe
+        ) else (
+          echo [警告] Injector.exe 文件不存在
+        )
         
     - name: 创建构建产物目录
       shell: cmd
