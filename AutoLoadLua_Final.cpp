@@ -18,7 +18,7 @@ void TryLoadLuaScript()
     OutputDebugStringA("[AutoLoadLua] 开始尝试加载 Lua 脚本\n");
     OutputDebugStringA("========================================\n");
     
-    const char* scriptPath = "data/server/TestServer/scripts/LoadPVP.lua";
+    const char* scriptPath = "C:/Night/data/server/TestServer/scripts/LoadPVP.lua";
     
     // 方法1: 尝试查找并调用 TestServer_RunScript
     typedef void (*TestServer_RunScriptFunc)(const char*);
