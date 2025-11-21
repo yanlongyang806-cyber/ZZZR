@@ -81,12 +81,24 @@ jobs:
         echo 编译 Injector.exe
         echo ========================================
         echo.
-        echo 当前 LIB 环境变量:
-        echo %LIB%
+        echo 检查 Windows SDK 库文件...
+        set "SDK_LIB_PATH=C:\Program Files (x86)\Windows Kits\10\lib\10.0.26100.0\um\x64"
+        if exist "%SDK_LIB_PATH%\tlhelp32.lib" (
+          echo [OK] 找到 tlhelp32.lib
+        ) else (
+          echo [ERROR] 未找到 tlhelp32.lib
+          echo 搜索 tlhelp32.lib...
+          where /R "C:\Program Files (x86)\Windows Kits" tlhelp32.lib 2>nul
+        )
+        if exist "%SDK_LIB_PATH%\kernel32.lib" (
+          echo [OK] 找到 kernel32.lib
+        ) else (
+          echo [WARN] 未找到 kernel32.lib
+        )
         echo.
         
         echo 正在编译 Injector.exe...
-        cl /EHsc /O2 /W3 Injector.cpp /link /OUT:Injector.exe kernel32.lib tlhelp32.lib
+        cl /EHsc /O2 /W3 Injector.cpp /link /OUT:Injector.exe "%SDK_LIB_PATH%\kernel32.lib" "%SDK_LIB_PATH%\tlhelp32.lib"
         if %ERRORLEVEL% NEQ 0 (
           echo [错误] Injector 编译失败
           exit /b 1
