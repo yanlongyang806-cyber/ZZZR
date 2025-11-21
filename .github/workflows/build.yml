@@ -15,16 +15,16 @@ jobs:
     - name: 检出代码
       uses: actions/checkout@v4
       
-    - name: 设置 MSVC 环境
+    - name: 设置 MSVC 环境 (x64)
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
         
-    - name: 编译 AutoLoadLua.dll
+    - name: 编译 AutoLoadLua.dll (x64)
       shell: cmd
       run: |
         echo ========================================
-        echo 编译 AutoLoadLua.dll
+        echo 编译 AutoLoadLua.dll (x64)
         echo ========================================
         echo 当前目录: %CD%
         echo.
@@ -74,11 +74,11 @@ jobs:
           exit /b 1
         )
         
-    - name: 编译 Injector.exe
+    - name: 编译 Injector.exe (x64)
       shell: cmd
       run: |
         echo ========================================
-        echo 编译 Injector.exe
+        echo 编译 Injector.exe (x64)
         echo ========================================
         echo.
         
@@ -96,25 +96,94 @@ jobs:
           echo [警告] Injector.exe 文件不存在
         )
         
+    - name: 重命名 x64 文件
+      shell: cmd
+      run: |
+        if exist AutoLoadLua.dll ren AutoLoadLua.dll AutoLoadLua_x64.dll
+        if exist Injector.exe ren Injector.exe Injector_x64.exe
+        
+    - name: 设置 MSVC 环境 (x86)
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x86
+        
+    - name: 编译 AutoLoadLua.dll (x86)
+      shell: cmd
+      run: |
+        echo ========================================
+        echo 编译 AutoLoadLua.dll (x86)
+        echo ========================================
+        
+        cl /LD /EHsc /O2 /W3 AutoLoadLua_Final.cpp /link /OUT:AutoLoadLua_x86.dll kernel32.lib psapi.lib
+        if %ERRORLEVEL% NEQ 0 (
+          echo [错误] DLL (x86) 编译失败
+          exit /b 1
+        )
+        
+        if exist AutoLoadLua_x86.dll (
+          echo [成功] AutoLoadLua_x86.dll 编译完成
+          dir AutoLoadLua_x86.dll
+        ) else (
+          echo [错误] AutoLoadLua_x86.dll 文件不存在
+          exit /b 1
+        )
+        
+    - name: 编译 Injector.exe (x86)
+      shell: cmd
+      run: |
+        echo ========================================
+        echo 编译 Injector.exe (x86)
+        echo ========================================
+        
+        cl /EHsc /O2 /W3 Injector.cpp /link /OUT:Injector_x86.exe kernel32.lib
+        if %ERRORLEVEL% NEQ 0 (
+          echo [错误] Injector (x86) 编译失败
+          exit /b 1
+        )
+        
+        if exist Injector_x86.exe (
+          echo [成功] Injector_x86.exe 编译完成
+          dir Injector_x86.exe
+        ) else (
+          echo [警告] Injector_x86.exe 文件不存在
+        )
+        
     - name: 创建构建产物目录
       shell: cmd
       run: |
         if not exist "build_artifacts" mkdir build_artifacts
+        if not exist "build_artifacts\x64" mkdir build_artifacts\x64
+        if not exist "build_artifacts\x86" mkdir build_artifacts\x86
         
     - name: 复制编译产物
       shell: cmd
       run: |
-        if exist "AutoLoadLua.dll" (
-          copy "AutoLoadLua.dll" "build_artifacts\AutoLoadLua.dll"
-          echo [OK] AutoLoadLua.dll 已复制
+        REM x64 版本
+        if exist "AutoLoadLua_x64.dll" (
+          copy "AutoLoadLua_x64.dll" "build_artifacts\x64\AutoLoadLua.dll"
+          echo [OK] AutoLoadLua_x64.dll 已复制
         ) else (
-          echo [错误] AutoLoadLua.dll 不存在
+          echo [错误] AutoLoadLua_x64.dll 不存在
           exit /b 1
         )
         
-        if exist "Injector.exe" (
-          copy "Injector.exe" "build_artifacts\Injector.exe"
-          echo [OK] Injector.exe 已复制
+        if exist "Injector_x64.exe" (
+          copy "Injector_x64.exe" "build_artifacts\x64\Injector.exe"
+          echo [OK] Injector_x64.exe 已复制
+        )
+        
+        REM x86 版本
+        if exist "AutoLoadLua_x86.dll" (
+          copy "AutoLoadLua_x86.dll" "build_artifacts\x86\AutoLoadLua.dll"
+          echo [OK] AutoLoadLua_x86.dll 已复制
+        ) else (
+          echo [错误] AutoLoadLua_x86.dll 不存在
+          exit /b 1
+        )
+        
+        if exist "Injector_x86.exe" (
+          copy "Injector_x86.exe" "build_artifacts\x86\Injector.exe"
+          echo [OK] Injector_x86.exe 已复制
         )
         
     - name: 上传构建产物
