@@ -1,0 +1,102 @@
+name: 编译 AutoLoadLua DLL
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 MSBuild 路径
+      shell: cmd
+      run: |
+        echo ========================================
+        echo 设置编译环境
+        echo ========================================
+        for /f "usebackq tokens=*" %%i in (`where /r "C:\Program Files" vcvars32.bat 2^>nul`) do (
+          echo 找到: %%i
+          call "%%i"
+          goto :found
+        )
+        :found
+        where cl
+        if %ERRORLEVEL% NEQ 0 (
+          echo [错误] 未找到编译器
+          exit /b 1
+        )
+        
+    - name: 编译 AutoLoadLua.dll
+      shell: cmd
+      run: |
+        echo ========================================
+        echo 编译 AutoLoadLua.dll
+        echo ========================================
+        echo 当前目录: %CD%
+        echo.
+        echo 正在编译...
+        cl /LD /EHsc /O2 /W3 AutoLoadLua_Final.cpp /link /OUT:AutoLoadLua.dll kernel32.lib psapi.lib
+        if %ERRORLEVEL% NEQ 0 (
+          echo [错误] DLL 编译失败
+          exit /b 1
+        )
+        echo.
+        echo [成功] AutoLoadLua.dll 编译完成
+        dir AutoLoadLua.dll
+        
+    - name: 编译 Injector.exe
+      shell: cmd
+      run: |
+        echo ========================================
+        echo 编译 Injector.exe
+        echo ========================================
+        echo 正在编译...
+        cl /EHsc /O2 /W3 Injector.cpp /link /OUT:Injector.exe kernel32.lib tlhelp32.lib
+        if %ERRORLEVEL% NEQ 0 (
+          echo [错误] Injector 编译失败
+          exit /b 1
+        )
+        echo.
+        echo [成功] Injector.exe 编译完成
+        dir Injector.exe
+        
+    - name: 创建构建产物目录
+      shell: cmd
+      run: |
+        if not exist "build_artifacts" mkdir build_artifacts
+        
+    - name: 复制编译产物
+      shell: cmd
+      run: |
+        echo ========================================
+        echo 复制编译产物
+        echo ========================================
+        if exist "AutoLoadLua.dll" (
+          copy "AutoLoadLua.dll" "build_artifacts\AutoLoadLua.dll"
+          echo [OK] AutoLoadLua.dll 已复制
+        ) else (
+          echo [错误] AutoLoadLua.dll 不存在
+          exit /b 1
+        )
+        
+        if exist "Injector.exe" (
+          copy "Injector.exe" "build_artifacts\Injector.exe"
+          echo [OK] Injector.exe 已复制
+        ) else (
+          echo [警告] Injector.exe 不存在
+        )
+        
+    - name: 上传构建产物
+      uses: actions/upload-artifact@v4
+      with:
+        name: AutoLoadLua-DLL
+        path: build_artifacts/
+        retention-days: 30
+

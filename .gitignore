@@ -1,0 +1,17 @@
+*.obj
+*.pdb
+*.exp
+*.lib
+*.ilk
+*.log
+*.tlog
+*.idb
+*.pch
+*.sdf
+*.opensdf
+*.suo
+*.user
+*.userosscache
+*.exe
+*.dll
+
