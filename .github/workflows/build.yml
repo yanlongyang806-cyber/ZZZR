@@ -69,6 +69,33 @@ jobs:
           exit /b 1
         )
         
+    - name: 设置 Windows SDK 路径
+      shell: powershell
+      run: |
+        Write-Host "========================================"
+        Write-Host "设置 Windows SDK 路径"
+        Write-Host "========================================"
+        
+        # 查找最新的 Windows SDK 版本
+        $sdkLibPath = "C:\Program Files (x86)\Windows Kits\10\Lib"
+        if (Test-Path $sdkLibPath) {
+          $sdkVersions = Get-ChildItem $sdkLibPath | Where-Object { $_.PSIsContainer } | Sort-Object Name -Descending
+          if ($sdkVersions.Count -gt 0) {
+            $latestSdk = $sdkVersions[0].FullName
+            $umPath = Join-Path $latestSdk "um\x64"
+            if (Test-Path $umPath) {
+              Write-Host "找到 Windows SDK: $latestSdk"
+              Write-Host "UM 库路径: $umPath"
+              $env:LIB = "$env:LIB;$umPath"
+              Write-Host "LIB 环境变量已更新"
+            } else {
+              Write-Host "[警告] 未找到 um\x64 路径"
+            }
+          }
+        } else {
+          Write-Host "[警告] 未找到 Windows SDK 路径: $sdkLibPath"
+        }
+        
     - name: 编译 Injector.exe
       shell: cmd
       run: |
@@ -94,6 +121,8 @@ jobs:
         cl /EHsc /O2 /W3 Injector.cpp /link /OUT:Injector.exe kernel32.lib tlhelp32.lib
         if %ERRORLEVEL% NEQ 0 (
           echo [错误] Injector 编译失败
+          echo 检查 LIB 环境变量...
+          echo %LIB%
           exit /b 1
         )
         
