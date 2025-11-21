@@ -81,21 +81,33 @@ jobs:
         Write-Host "Setting up Windows SDK Path"
         Write-Host "========================================"
         
+        $progFiles86 = ${env:ProgramFiles(x86)}
+        $progFiles = $env:ProgramFiles
+        
+        Write-Host "Program Files (x86): $progFiles86"
+        Write-Host "Program Files: $progFiles"
+        
         $sdkRootPaths = @(
-            "${env:ProgramFiles(x86)}\Windows Kits\10\Lib",
-            "${env:ProgramFiles}\Windows Kits\10\Lib"
+            "$progFiles86\Windows Kits\10\Lib",
+            "$progFiles\Windows Kits\10\Lib"
         )
         
         $existingSdkPaths = $sdkRootPaths | Where-Object { Test-Path $_ }
         
         if ($existingSdkPaths.Count -gt 0) {
-            $sdkVersions = Get-ChildItem -Path $existingSdkPaths[0] | 
-                Where-Object { $_.Name -match "^\d+\.\d+\.\d+\.\d+`$" } | 
-                Sort-Object { [version]$_.Name } -Descending
+            $sdkLibPath = $existingSdkPaths[0]
+            Write-Host "Found SDK path: $sdkLibPath"
+            
+            $sdkVersions = Get-ChildItem -Path $sdkLibPath | 
+                Where-Object { $_.PSIsContainer -and $_.Name -match "^\d+\.\d+" } | 
+                Sort-Object Name -Descending
             
             if ($sdkVersions.Count -gt 0) {
                 $latestSdkPath = $sdkVersions[0].FullName
                 $umLibPath = Join-Path $latestSdkPath "um\x64"
+                
+                Write-Host "Latest SDK: $latestSdkPath"
+                Write-Host "UM lib path: $umLibPath"
                 
                 if (Test-Path $umLibPath) {
                     $currentLib = $env:LIB
@@ -104,16 +116,18 @@ jobs:
                     } else {
                         $newLib = $umLibPath
                     }
-                    Write-Host "LIB=$newLib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-                    Write-Host "[OK] Windows SDK configured: $umLibPath"
+                    "LIB=$newLib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                    Write-Host "[OK] Windows SDK configured"
                 } else {
                     Write-Host "[WARN] um\x64 path not found: $umLibPath"
                 }
             } else {
-                Write-Host "[WARN] No SDK version found"
+                Write-Host "[WARN] No SDK version found in: $sdkLibPath"
             }
         } else {
             Write-Host "[ERROR] Windows SDK root path not found"
+            Write-Host "Searched paths:"
+            $sdkRootPaths | ForEach-Object { Write-Host "  $_" }
         }
         
         Write-Host "========================================"
