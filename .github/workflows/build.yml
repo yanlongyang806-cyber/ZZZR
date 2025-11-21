@@ -16,19 +16,52 @@ jobs:
       uses: actions/checkout@v4
       
     - name: 设置 Visual Studio 环境
-      uses: microsoft/setup-msbuild@v1
-      
-    - name: 验证编译环境
       shell: cmd
       run: |
         echo ========================================
-        echo 验证编译环境
+        echo 设置 Visual Studio 编译环境
         echo ========================================
+        
+        REM 查找并调用 vcvarsall.bat
+        set VS_PATH=
+        if exist "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
+          set VS_PATH=C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat
+        ) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
+          set VS_PATH=C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat
+        ) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
+          set VS_PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat
+        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" (
+          set VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat
+        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" (
+          set VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat
+        ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" (
+          set VS_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat
+        )
+        
+        if "%VS_PATH%"=="" (
+          echo [错误] 未找到 Visual Studio
+          echo 查找所有可能的路径...
+          dir /s /b "C:\Program Files\Microsoft Visual Studio\*\VC\Auxiliary\Build\vcvarsall.bat" 2>nul
+          dir /s /b "C:\Program Files (x86)\Microsoft Visual Studio\*\VC\Auxiliary\Build\vcvarsall.bat" 2>nul
+          exit /b 1
+        )
+        
+        echo 找到 Visual Studio: %VS_PATH%
+        call "%VS_PATH%" x86
+        if %ERRORLEVEL% NEQ 0 (
+          echo [错误] 设置编译环境失败
+          exit /b 1
+        )
+        
+        echo.
+        echo 验证编译器...
         where cl
         if %ERRORLEVEL% NEQ 0 (
           echo [错误] 未找到编译器
           exit /b 1
         )
+        
+        echo [OK] 编译环境设置成功
         cl
         
     - name: 编译 AutoLoadLua.dll
